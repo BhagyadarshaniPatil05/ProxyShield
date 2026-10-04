@@ -1390,7 +1390,9 @@ const AuditResults = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-slate-300 uppercase font-mono">Trade-off Classification</span>
                     <span className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      {fairnessUtility.tradeoffClassification.code || 'BALANCED_TRADEOFF'}
+                      {typeof fairnessUtility.tradeoffClassification === 'string'
+                        ? fairnessUtility.tradeoffClassification
+                        : fairnessUtility.tradeoffClassification?.code || 'BALANCED_TRADEOFF'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed">
