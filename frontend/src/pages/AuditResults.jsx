@@ -518,7 +518,7 @@ const AuditResults = () => {
               <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
                 <span className="text-[10px] font-mono text-slate-500 uppercase block">Potential Proxy Signals</span>
                 <span className={`text-xl font-bold font-mono block ${isProxySignalsDone ? 'text-amber-400' : 'text-slate-500'}`}>
-                  {isProxySignalsDone ? `${proxy.results.filter(r => r.capacityLevel === 'HIGH' || r.capacityLevel === 'MEDIUM').length} Features Found` : 'Not Analyzed Yet'}
+                  {isProxySignalsDone ? `${proxy.results.filter(r => (r.capacityLevel && (r.capacityLevel.includes('HIGH') || r.capacityLevel.includes('MODERATE') || r.capacityLevel === 'MEDIUM'))).length} Features Found` : 'Not Analyzed Yet'}
                 </span>
                 <p className="text-[11px] text-slate-400">
                   {isProxySignalsDone ? `${proxy.results.length} candidate features checked` : 'Identify correlated proxies'}
@@ -889,13 +889,15 @@ const AuditResults = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
                         {proxy.results.map((r) => {
-                          const isHigh = r.capacityLevel === 'HIGH';
-                          const isMed = r.capacityLevel === 'MEDIUM';
+                          const isHigh = Boolean(r.capacityLevel && (r.capacityLevel.includes('HIGH') || r.capacityLevel === 'HIGH'));
+                          const isMed = Boolean(r.capacityLevel && (r.capacityLevel.includes('MODERATE') || r.capacityLevel === 'MEDIUM'));
+                          const scoreVal = r.rankingScore ?? r.proxyCapacityScore ?? r.association?.value;
+                          const strengthLabel = isHigh ? 'HIGH' : isMed ? 'MODERATE' : (r.capacityLevel?.includes('LOW') ? 'LOW' : (r.capacityLevel || 'LOW'));
                           return (
                             <tr key={r.feature} className="hover:bg-slate-900/40">
                               <td className="py-2.5 font-semibold text-slate-200">{r.feature}</td>
                               <td className="py-2.5 text-cyan-400 font-bold">
-                                {r.proxyCapacityScore !== undefined ? r.proxyCapacityScore.toFixed(3) : 'N/A'}
+                                {scoreVal !== undefined && scoreVal !== null ? Number(scoreVal).toFixed(3) : 'N/A'}
                               </td>
                               <td className="py-2.5">
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
@@ -905,7 +907,7 @@ const AuditResults = () => {
                                     ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                                     : 'bg-slate-800 text-slate-400'
                                 }`}>
-                                  {r.capacityLevel || 'LOW'}
+                                  {strengthLabel}
                                 </span>
                               </td>
                               <td className="py-2.5 text-slate-300">
@@ -965,6 +967,91 @@ const AuditResults = () => {
               />
             )}
           </Card>
+
+          {/* Proxy Candidate Feature Details Modal */}
+          {selectedFeature && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-lg text-slate-100 font-mono">{selectedFeature.feature}</h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-800 text-slate-400 border border-slate-700">
+                        {selectedFeature.dataType || 'attribute'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">Potential Proxy Signal Analysis</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFeature(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 font-mono uppercase block">Capacity Score</span>
+                      <span className="text-base font-bold font-mono text-cyan-400">
+                        {(selectedFeature.rankingScore ?? selectedFeature.proxyCapacityScore ?? selectedFeature.association?.value) !== undefined &&
+                        (selectedFeature.rankingScore ?? selectedFeature.proxyCapacityScore ?? selectedFeature.association?.value) !== null
+                          ? Number(selectedFeature.rankingScore ?? selectedFeature.proxyCapacityScore ?? selectedFeature.association?.value).toFixed(3)
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 font-mono uppercase block">Capacity Level</span>
+                      <span className="text-xs font-semibold text-amber-400">
+                        {selectedFeature.capacityLevel || 'LOW'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Association Metrics */}
+                  <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+                    <span className="font-semibold text-slate-200 block text-xs">Statistical Association</span>
+                    <div className="grid grid-cols-2 gap-2 text-slate-400 font-mono text-[11px]">
+                      <div>Method: <span className="text-slate-200">{selectedFeature.association?.method || 'N/A'}</span></div>
+                      <div>Value: <span className="text-cyan-400 font-bold">{selectedFeature.association?.value !== undefined && selectedFeature.association?.value !== null ? Number(selectedFeature.association.value).toFixed(4) : 'N/A'}</span></div>
+                      <div>p-value: <span className="text-slate-200">{selectedFeature.association?.pValue !== undefined && selectedFeature.association?.pValue !== null ? Number(selectedFeature.association.pValue).toExponential(2) : 'N/A'}</span></div>
+                      <div>Status: <span className="text-slate-200">{selectedFeature.association?.status || selectedFeature.status || 'ANALYZED'}</span></div>
+                    </div>
+                    {selectedFeature.association?.explanation && (
+                      <p className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                        {selectedFeature.association.explanation}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Mutual Information & Predictability */}
+                  <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+                    <span className="font-semibold text-slate-200 block text-xs">Predictability & Mutual Information</span>
+                    <div className="grid grid-cols-2 gap-2 text-slate-400 font-mono text-[11px]">
+                      <div>Mutual Info (MI): <span className="text-indigo-400 font-bold">{selectedFeature.mutualInformation !== undefined && selectedFeature.mutualInformation !== null ? Number(selectedFeature.mutualInformation).toFixed(4) : 'N/A'}</span></div>
+                      <div>Predictor: <span className="text-slate-200">{selectedFeature.predictability?.model || 'Logistic Regression'}</span></div>
+                      <div>Predict Accuracy: <span className="text-slate-200">{selectedFeature.predictability?.accuracy !== undefined && selectedFeature.predictability?.accuracy !== null ? `${(Number(selectedFeature.predictability.accuracy) * 100).toFixed(1)}%` : 'N/A'}</span></div>
+                      <div>Predict F1: <span className="text-slate-200">{selectedFeature.predictability?.f1 !== undefined && selectedFeature.predictability?.f1 !== null ? Number(selectedFeature.predictability.f1).toFixed(3) : 'N/A'}</span></div>
+                    </div>
+                  </div>
+
+                  {selectedFeature.explanation && (
+                    <p className="text-[11px] text-slate-400">
+                      {selectedFeature.explanation}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2 border-t border-slate-800">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedFeature(null)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1012,23 +1099,30 @@ const AuditResults = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
-                        {proxyUse.candidateFeatures.map((f) => (
-                          <tr key={f.featureName || f.feature} className="hover:bg-slate-900/40">
-                            <td className="py-2.5 font-semibold text-slate-200">{f.featureName || f.feature}</td>
-                            <td className="py-2.5 text-cyan-400 font-bold">
-                              {f.globalShapValue !== undefined ? f.globalShapValue.toFixed(4) : (f.shapImportance?.toFixed(4) || 'N/A')}
-                            </td>
-                            <td className="py-2.5 text-indigo-400">
-                              {f.permutationImportanceDrop !== undefined ? `${(f.permutationImportanceDrop * 100).toFixed(2)}%` : 'N/A'}
-                            </td>
-                            <td className="py-2.5 text-amber-400">
-                              {f.ablationDelta !== undefined ? `${(f.ablationDelta * 100).toFixed(2)}%` : 'N/A'}
-                            </td>
-                            <td className="py-2.5 text-rose-400 font-semibold">
-                              {f.predictionChangeRate !== undefined ? `${(f.predictionChangeRate * 100).toFixed(1)}%` : 'N/A'}
-                            </td>
-                          </tr>
-                        ))}
+                        {proxyUse.candidateFeatures.map((f) => {
+                          const shapVal = f.shap?.meanAbsoluteValue ?? f.globalShapValue ?? f.shapImportance;
+                          const permVal = f.permutation?.meanImportance ?? f.permutationImportanceDrop;
+                          const ablVal = f.ablation?.f1Delta ?? f.ablationDelta;
+                          const changeRateVal = f.ablation?.predictionChangeRate ?? f.predictionChangeRate;
+
+                          return (
+                            <tr key={f.featureName || f.feature} className="hover:bg-slate-900/40">
+                              <td className="py-2.5 font-semibold text-slate-200">{f.featureName || f.feature}</td>
+                              <td className="py-2.5 text-cyan-400 font-bold">
+                                {shapVal !== undefined && shapVal !== null ? Number(shapVal).toFixed(4) : 'N/A'}
+                              </td>
+                              <td className="py-2.5 text-indigo-400">
+                                {permVal !== undefined && permVal !== null ? `${(Number(permVal) * 100).toFixed(2)}%` : 'N/A'}
+                              </td>
+                              <td className="py-2.5 text-amber-400">
+                                {ablVal !== undefined && ablVal !== null ? `${(Number(ablVal) * 100).toFixed(2)}%` : 'N/A'}
+                              </td>
+                              <td className="py-2.5 text-rose-400 font-semibold">
+                                {changeRateVal !== undefined && changeRateVal !== null ? `${(Number(changeRateVal) * 100).toFixed(1)}%` : 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1089,21 +1183,30 @@ const AuditResults = () => {
                 <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
                   <h4 className="font-semibold text-slate-200 text-sm">Feature Neutralization Impact</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {ablation.features.map((f) => (
-                      <div key={f.featureName} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-2">
-                        <span className="font-bold text-slate-200 text-sm">{f.featureName}</span>
-                        <div className="space-y-1 text-xs font-mono">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Accuracy Delta:</span>
-                            <span className="text-amber-400 font-semibold">{f.performanceDelta?.accuracyDelta ? (f.performanceDelta.accuracyDelta * 100).toFixed(2) + '%' : '0.00%'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">Flipped Decisions:</span>
-                            <span className="text-rose-400 font-semibold">{f.predictionChangeRate ? (f.predictionChangeRate * 100).toFixed(1) + '%' : '0.0%'}</span>
+                    {ablation.features.map((f) => {
+                      const accDelta = f.deltas?.accuracyDelta ?? f.performanceDelta?.accuracyDelta ?? f.performanceDelta?.accuracy;
+                      const flipRate = f.predictionChangeRate;
+
+                      return (
+                        <div key={f.featureName || f.feature} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-2">
+                          <span className="font-bold text-slate-200 text-sm">{f.featureName || f.feature}</span>
+                          <div className="space-y-1 text-xs font-mono">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Accuracy Delta:</span>
+                              <span className="text-amber-400 font-semibold">
+                                {accDelta !== undefined && accDelta !== null ? `${(Number(accDelta) * 100).toFixed(2)}%` : '0.00%'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Flipped Decisions:</span>
+                              <span className="text-rose-400 font-semibold">
+                                {flipRate !== undefined && flipRate !== null ? `${(Number(flipRate) * 100).toFixed(1)}%` : '0.0%'}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1145,17 +1248,37 @@ const AuditResults = () => {
                 </div>
                 {/* Experiments list */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {(fairnessImpact.experiments || fairnessImpact.features).map((exp) => (
-                    <div key={exp.featureName || exp.feature} className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-                      <span className="font-bold text-slate-200 text-sm">{exp.featureName || exp.feature}</span>
-                      <div className="space-y-1 text-xs font-mono">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Demographic Parity Shift:</span>
-                          <span className="text-indigo-400 font-semibold">{exp.fairnessDelta?.demographicParityDifferenceDelta !== undefined ? exp.fairnessDelta.demographicParityDifferenceDelta.toFixed(4) : 'N/A'}</span>
+                  {(fairnessImpact.experiments || fairnessImpact.features).map((exp) => {
+                    const dpdDelta = exp.fairnessDelta?.demographicParityDifference ?? exp.fairnessDelta?.demographicParityDifferenceDelta;
+                    const eodDelta = exp.fairnessDelta?.equalOpportunityDifference ?? exp.fairnessDelta?.equalOpportunityDifferenceDelta;
+
+                    return (
+                      <div key={exp.featureName || exp.feature} className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                        <span className="font-bold text-slate-200 text-sm">{exp.featureName || exp.feature}</span>
+                        <div className="space-y-1 text-xs font-mono">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Demographic Parity Shift:</span>
+                            <span className="text-indigo-400 font-semibold">
+                              {dpdDelta !== undefined && dpdDelta !== null ? Number(dpdDelta).toFixed(4) : 'N/A'}
+                            </span>
+                          </div>
+                          {eodDelta !== undefined && eodDelta !== null && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Equal Opportunity Shift:</span>
+                              <span className="text-cyan-400 font-semibold">
+                                {Number(eodDelta).toFixed(4)}
+                              </span>
+                            </div>
+                          )}
                         </div>
+                        {exp.evidenceSummary && (
+                          <p className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                            {exp.evidenceSummary}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
