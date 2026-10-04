@@ -44,6 +44,10 @@ const {
   getFairnessUtilityResults
 } = require('../controllers/fairnessUtilityController');
 const {
+  saveHumanReview,
+  getHumanReview
+} = require('../controllers/reviewController');
+const {
   generateAuditReport,
   getAuditReportJson,
   getAuditReportHtml
@@ -90,6 +94,10 @@ router.get('/:id/before-after', getBeforeAfterResults);
 // Phase 12 Fairness-Utility Trade-off Routes
 router.post('/:id/fairness-utility', runFairnessUtilityAnalysis);
 router.get('/:id/fairness-utility', getFairnessUtilityResults);
+
+// Human Review / Governance Routes
+router.post('/:id/review', saveHumanReview);
+router.get('/:id/review', getHumanReview);
 
 // Phase 13 AI Fairness Audit Report Generation Routes
 router.post('/:id/report', generateAuditReport);

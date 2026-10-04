@@ -383,4 +383,28 @@ export const getAuditReportJson = async (id) => {
  */
 export const getAuditReportHtmlUrl = (id) => `${API_BASE_URL}/audits/${id}/report/html`;
 
+/**
+ * Saves human review determination for an audit.
+ */
+export const saveAuditReview = async (id, reviewData) => {
+  try {
+    const response = await apiClient.post(`/audits/${id}/review`, reviewData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error, 'Failed to save audit review determination.'));
+  }
+};
+
+/**
+ * Retrieves human review determination for an audit.
+ */
+export const getAuditReview = async (id) => {
+  try {
+    const response = await apiClient.get(`/audits/${id}/review`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error, 'Failed to load audit review determination.'));
+  }
+};
+
 export default apiClient;

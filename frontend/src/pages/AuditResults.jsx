@@ -27,7 +27,9 @@ import {
   runBeforeAfter,
   runFairnessUtility,
   generateAuditReport,
-  getAuditReportHtmlUrl
+  getAuditReportHtmlUrl,
+  saveAuditReview,
+  getAuditReview
 } from '../services/api';
 
 const AuditResults = () => {
@@ -83,6 +85,8 @@ const AuditResults = () => {
   const [reviewDecision, setReviewDecision] = useState('APPROVED');
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewSaved, setReviewSaved] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
 
   const auditId = audit?._id || audit?.id || id;
 
@@ -109,6 +113,11 @@ const AuditResults = () => {
         }
         if (res.audit.fairnessResult?.referenceGroup) {
           setSelectedRefGroup(res.audit.fairnessResult.referenceGroup);
+        }
+        if (res.audit.reviewResult) {
+          setReviewDecision(res.audit.reviewResult.decision || 'APPROVED');
+          setReviewNotes(res.audit.reviewResult.notes || '');
+          setReviewSaved(true);
         }
       } else {
         setError('Failed to load audit results.');
@@ -286,6 +295,33 @@ const AuditResults = () => {
       setReportError(err.message || 'Error generating audit report.');
     } finally {
       setRunningReport(false);
+    }
+  };
+
+  const handleSaveReview = async () => {
+    setSavingReview(true);
+    setReviewError(null);
+    try {
+      const res = await saveAuditReview(auditId, {
+        decision: reviewDecision,
+        notes: reviewNotes
+      });
+      if (res && res.success && res.audit) {
+        setAudit(res.audit);
+        setReviewSaved(true);
+        if (res.audit.reviewResult) {
+          setReviewDecision(res.audit.reviewResult.decision || 'APPROVED');
+          setReviewNotes(res.audit.reviewResult.notes || '');
+        }
+      } else {
+        setReviewSaved(false);
+        setReviewError('Failed to save review determination.');
+      }
+    } catch (err) {
+      setReviewSaved(false);
+      setReviewError(err.message || 'Error saving review determination.');
+    } finally {
+      setSavingReview(false);
     }
   };
 
@@ -1531,17 +1567,23 @@ const AuditResults = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
                   <Button
                     size="sm"
                     icon={CheckCircle2}
-                    onClick={() => setReviewSaved(true)}
+                    onClick={handleSaveReview}
+                    disabled={savingReview}
                   >
-                    Save Review Determination
+                    {savingReview ? 'Saving Decision...' : 'Save Review Determination'}
                   </Button>
-                  {reviewSaved && (
+                  {reviewSaved && !savingReview && (
                     <span className="text-xs text-emerald-400 flex items-center gap-1 font-mono">
                       <Check className="w-3.5 h-3.5" /> Decision recorded successfully
+                    </span>
+                  )}
+                  {reviewError && (
+                    <span className="text-xs text-rose-400 flex items-center gap-1 font-mono">
+                      <AlertCircle className="w-3.5 h-3.5" /> {reviewError}
                     </span>
                   )}
                 </div>
