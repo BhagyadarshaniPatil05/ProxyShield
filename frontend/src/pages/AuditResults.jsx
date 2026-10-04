@@ -1345,6 +1345,44 @@ const AuditResults = () => {
                   </div>
                 </div>
 
+                {/* Fairness Comparison (Before vs. After Mitigation) */}
+                {beforeAfter && beforeAfter.fairnessDelta && (
+                  <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+                    <h4 className="font-semibold text-slate-200 text-sm">Fairness Comparison (Before vs. After Mitigation)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-xs font-mono">
+                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <span className="text-slate-500 uppercase block text-[10px]">Demographic Parity Shift (Δ DPD)</span>
+                        <span className="text-lg font-bold text-indigo-400 block mt-1">
+                          {beforeAfter.fairnessDelta.dpd !== undefined && beforeAfter.fairnessDelta.dpd !== null
+                            ? Number(beforeAfter.fairnessDelta.dpd).toFixed(4)
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <span className="text-slate-500 uppercase block text-[10px]">Disparate Impact Shift (Δ DI)</span>
+                        <span className="text-lg font-bold text-cyan-400 block mt-1">
+                          {beforeAfter.fairnessDelta.di !== undefined && beforeAfter.fairnessDelta.di !== null
+                            ? Number(beforeAfter.fairnessDelta.di).toFixed(4)
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                        <span className="text-slate-500 uppercase block text-[10px]">Equal Opportunity Shift (Δ EOD)</span>
+                        <span className="text-lg font-bold text-emerald-400 block mt-1">
+                          {beforeAfter.fairnessDelta.eod !== undefined && beforeAfter.fairnessDelta.eod !== null
+                            ? Number(beforeAfter.fairnessDelta.eod).toFixed(4)
+                            : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    {beforeAfter.fairnessInterpretation && (
+                      <p className="text-xs text-slate-300 leading-relaxed pt-2 border-t border-slate-800/60">
+                        {beforeAfter.fairnessInterpretation}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Features Removed */}
                 <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-xs">
                   <span className="text-slate-400 block mb-1">Intervention applied:</span>
