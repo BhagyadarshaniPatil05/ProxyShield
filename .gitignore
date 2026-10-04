@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+env/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build Outputs
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+
+# User Data & Storage
+data/temp/*
+!data/temp/.gitkeep
+data/sample/*
+!data/sample/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Operating System
+.DS_Store
+Thumbs.db
+*.log
